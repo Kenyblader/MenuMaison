@@ -1,16 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:menu_maison/utils/theme.dart';
+import 'screens/auth/login_page.dart';
+import 'screens/auth/register_page.dart';
+import 'screens/main/family_profile_setup_page.dart';
+import 'screens/main/home_page.dart';
+import 'screens/main/dish_management_page.dart';
+import 'screens/main/add_dish_page.dart';
+import 'screens/main/meal_planning_page.dart';
+import 'screens/main/shopping_page.dart';
+import 'screens/main/suggestion_page.dart';
+import 'screens/main/statistics_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MenuMaisonApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MenuMaisonApp extends StatelessWidget {
+  const MenuMaisonApp({super.key});
 
-  // This widget is the root of your application.
+  // Simule l'état de configuration (à remplacer par une vérification réelle)
+  bool isProfileConfigured() => false; // Change à true après configuration
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: appTheme,
+      initialRoute: isProfileConfigured() ? '/home' : '/',
+      routes: {
+        '/': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
+        '/family-profile-setup': (context) => const FamilyProfileSetupPage(),
+        '/home': (context) => const HomePage(),
+        '/profile': (context) => const ProfilePage(),
+        '/settings': (context) => const SettingsPage(),
+        '/dishes': (context) => const DishManagementPage(),
+        '/add-dish': (context) => const AddDishPage(),
+        '/planning': (context) => const MealPlanningPage(),
+        '/shopping': (context) => const ShoppingPage(),
+        '/suggestions': (context) => const SuggestionPage(),
+        '/statistics': (context) => const StatisticsPage(),
+      },
+    );
+  }
+}
+
+// Page temporaire pour Profil
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -51,73 +87,35 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profil'),
+        backgroundColor: tealColor,
+        foregroundColor: whiteColor,
+      ),
+      body: const Center(
+        child: Text('Page Profil (à implémenter)'),
+      ),
+    );
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+// Page temporaire pour Paramètres
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Paramètres'),
+        backgroundColor: tealColor,
+        foregroundColor: whiteColor,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
+      body: const Center(
+        child: Text('Page Paramètres (à implémenter)'),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
