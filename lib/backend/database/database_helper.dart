@@ -21,7 +21,8 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5, // Incrémenter la version pour gérer la nouvelle structure des ingrédients
+      version:
+          5, // Incrémenter la version pour gérer la nouvelle structure des ingrédients
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users (
@@ -101,14 +102,18 @@ class DatabaseHelper {
             final dishData = Map<String, dynamic>.from(dish);
             final ingredientsJson = dishData['ingredients'] as String?;
             if (ingredientsJson != null && ingredientsJson.isNotEmpty) {
-              final ingredients = List<Map<String, dynamic>>.from(jsonDecode(ingredientsJson));
+              final ingredients = List<Map<String, dynamic>>.from(
+                jsonDecode(ingredientsJson),
+              );
               // Transformer les anciens ingrédients ({name, quantity, unit}) en nouveaux ({name, price})
-              final updatedIngredients = ingredients.map((ingredient) {
-                return {
-                  'name': ingredient['name'],
-                  'price': 0.0, // Prix par défaut, car l'ancienne structure n'avait pas de prix
-                };
-              }).toList();
+              final updatedIngredients =
+                  ingredients.map((ingredient) {
+                    return {
+                      'name': ingredient['name'],
+                      'price':
+                          0.0, // Prix par défaut, car l'ancienne structure n'avait pas de prix
+                    };
+                  }).toList();
               dishData['ingredients'] = jsonEncode(updatedIngredients);
               await db.update(
                 'dishes',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:menu_maison/components/gemini_progress_animation.dart';
 import 'package:menu_maison/services/gemini_service.dart';
 import 'package:menu_maison/utils/theme.dart';
 
@@ -19,15 +20,33 @@ class _SuggestionPageState extends State<SuggestionPage> {
 
   _getSuggestions() async {
     try {
-      final suggestions = await gemini.GetMEnuByBudget(
-        _budgetController.text,
-        int.parse(_numberOfPeopleController.text),
-        _preference ?? 'Aucune',
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => Dialog(
+              child: GeminiProcessingAnimation(
+                future: gemini.GetMEnuByBudget(
+                  _budgetController.text,
+                  int.parse(_numberOfPeopleController.text),
+                  _preference ?? 'Aucune',
+                ),
+                onCompleted: (result) {
+                  setState(() {
+                    Navigator.of(context).pop();
+                    suggestDishes.clear();
+                    suggestDishes.addAll(result);
+                  });
+                },
+                onError: (error) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("desole une erreur c'est produite")),
+                  );
+                },
+              ),
+            ),
       );
-      setState(() {
-        suggestDishes.clear();
-        suggestDishes.addAll(suggestions);
-      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
