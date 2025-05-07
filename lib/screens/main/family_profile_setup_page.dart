@@ -1,9 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:menu_maison/utils/theme.dart';
 import 'home_page.dart';
+import '../../backend/models/family_profile_model.dart';
+import '../../backend/repositories/family_profile_repository_impl.dart';
 
-class FamilyProfileSetupPage extends StatelessWidget {
+class FamilyProfileSetupPage extends StatefulWidget {
   const FamilyProfileSetupPage({super.key});
+
+  @override
+  State<FamilyProfileSetupPage> createState() => _FamilyProfileSetupPageState();
+}
+
+class _FamilyProfileSetupPageState extends State<FamilyProfileSetupPage> {
+  final _totalMembersController = TextEditingController();
+  final _adultsController = TextEditingController();
+  final _childrenController = TextEditingController();
+  final _babiesController = TextEditingController();
+  final _dietaryRestrictionsController = TextEditingController();
+  String? _region;
+  final _familyProfileRepository = FamilyProfileRepositoryImpl();
+
+  @override
+  void dispose() {
+    _totalMembersController.dispose();
+    _adultsController.dispose();
+    _childrenController.dispose();
+    _babiesController.dispose();
+    _dietaryRestrictionsController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +54,7 @@ class FamilyProfileSetupPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     TextField(
+                      controller: _totalMembersController,
                       decoration: InputDecoration(
                         labelText: 'Nombre total de membres',
                         prefixIcon: const Icon(Icons.group, color: tealColor),
@@ -43,6 +69,7 @@ class FamilyProfileSetupPage extends StatelessWidget {
                       children: [
                         Expanded(
                           child: TextField(
+                            controller: _adultsController,
                             decoration: InputDecoration(
                               labelText: 'Adultes',
                               border: OutlineInputBorder(
@@ -55,6 +82,7 @@ class FamilyProfileSetupPage extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
+                            controller: _childrenController,
                             decoration: InputDecoration(
                               labelText: 'Enfants',
                               border: OutlineInputBorder(
@@ -67,6 +95,7 @@ class FamilyProfileSetupPage extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
+                            controller: _babiesController,
                             decoration: InputDecoration(
                               labelText: 'Bébés',
                               border: OutlineInputBorder(
@@ -95,6 +124,7 @@ class FamilyProfileSetupPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     TextField(
+                      controller: _dietaryRestrictionsController,
                       decoration: InputDecoration(
                         labelText: 'Restrictions (ex. végétarien, sans gluten)',
                         prefixIcon: const Icon(Icons.local_dining, color: tealColor),
@@ -131,7 +161,11 @@ class FamilyProfileSetupPage extends StatelessWidget {
                         DropdownMenuItem(value: 'Italie', child: Text('Italie')),
                         DropdownMenuItem(value: 'Espagne', child: Text('Espagne')),
                       ],
-                      onChanged: (value) {},
+                      onChanged: (value) {
+                        setState(() {
+                          _region = value;
+                        });
+                      },
                     ),
                   ],
                 ),
@@ -139,8 +173,28 @@ class FamilyProfileSetupPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // Simule la sauvegarde du profil et redirige vers la page d'accueil
+              onPressed: () async {
+                final totalMembers = int.tryParse(_totalMembersController.text) ?? 0;
+                final adults = int.tryParse(_adultsController.text) ?? 0;
+                final children = int.tryParse(_childrenController.text) ?? 0;
+                final babies = int.tryParse(_babiesController.text) ?? 0;
+
+                if (totalMembers != (adults + children + babies)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Le total des membres doit correspondre à la somme des adultes, enfants et bébés.')),
+                  );
+                  return;
+                }
+
+                final profile = FamilyProfileModel(
+                  totalMembers: totalMembers,
+                  adults: adults,
+                  children: children,
+                  babies: babies,
+                  dietaryRestrictions: _dietaryRestrictionsController.text.isNotEmpty ? _dietaryRestrictionsController.text : null,
+                  region: _region,
+                );
+                await _familyProfileRepository.saveProfile(profile);
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const HomePage()),

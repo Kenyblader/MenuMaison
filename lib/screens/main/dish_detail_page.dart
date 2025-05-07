@@ -4,25 +4,41 @@ import '../../backend/repositories/dish_repository_impl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-class AddDishPage extends StatefulWidget {
-  const AddDishPage({super.key});
+class DishDetailPage extends StatefulWidget {
+  final Map<String, dynamic> dish;
+  const DishDetailPage({super.key, required this.dish});
 
   @override
-  State<AddDishPage> createState() => _AddDishPageState();
+  State<DishDetailPage> createState() => _DishDetailPageState();
 }
 
-class _AddDishPageState extends State<AddDishPage> {
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _prepTimeController = TextEditingController();
-  final _cookTimeController = TextEditingController();
-  final _servingsController = TextEditingController();
-  final _tutorialLinkController = TextEditingController();
-  final List<Map<String, dynamic>> _ingredients = [];
+class _DishDetailPageState extends State<DishDetailPage> {
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _prepTimeController;
+  late TextEditingController _cookTimeController;
+  late TextEditingController _servingsController;
+  late TextEditingController _tutorialLinkController;
+  List<Map<String, dynamic>> _ingredients = [];
   final _ingredientController = TextEditingController();
   final _priceController = TextEditingController();
-  final _dishRepository = DishRepositoryImpl();
   File? _selectedImage;
+  final _dishRepository = DishRepositoryImpl();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.dish['name']);
+    _descriptionController = TextEditingController(text: widget.dish['description'] ?? '');
+    _prepTimeController = TextEditingController(text: widget.dish['prepTime'].toString());
+    _cookTimeController = TextEditingController(text: widget.dish['cookTime'].toString());
+    _servingsController = TextEditingController(text: widget.dish['servings'].toString());
+    _tutorialLinkController = TextEditingController(text: widget.dish['tutorialLink'] ?? '');
+    _ingredients = List<Map<String, dynamic>>.from(widget.dish['ingredients'] ?? []);
+    if (widget.dish['photoPath'] != null && File(widget.dish['photoPath']).existsSync()) {
+      _selectedImage = File(widget.dish['photoPath']);
+    }
+  }
 
   @override
   void dispose() {
@@ -60,7 +76,7 @@ class _AddDishPageState extends State<AddDishPage> {
     }
   }
 
-  Future<void> _saveDish() async {
+  Future<void> _saveChanges() async {
     if (_nameController.text.isEmpty || _prepTimeController.text.isEmpty || _cookTimeController.text.isEmpty ||
         _servingsController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,6 +86,7 @@ class _AddDishPageState extends State<AddDishPage> {
     }
 
     final dishData = {
+      'id': widget.dish['id'],
       'name': _nameController.text,
       'description': _descriptionController.text,
       'prepTime': int.parse(_prepTimeController.text),
@@ -77,12 +94,12 @@ class _AddDishPageState extends State<AddDishPage> {
       'servings': int.parse(_servingsController.text),
       'tutorialLink': _tutorialLinkController.text.isNotEmpty ? _tutorialLinkController.text : null,
       'ingredients': _ingredients,
-      'photoPath': _selectedImage?.path,
+      'photoPath': _selectedImage?.path ?? widget.dish['photoPath'],
     };
 
     await _dishRepository.saveDish(dishData);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Plat enregistré avec succès')),
+      const SnackBar(content: Text('Modifications enregistrées avec succès')),
     );
     Navigator.pop(context, true);
   }
@@ -91,9 +108,15 @@ class _AddDishPageState extends State<AddDishPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajouter un plat'),
+        title: const Text('Détails du plat'),
         backgroundColor: tealColor,
         foregroundColor: whiteColor,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save, color: whiteColor),
+            onPressed: _saveChanges,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -275,7 +298,9 @@ class _AddDishPageState extends State<AddDishPage> {
                       child: Center(
                         child: _selectedImage != null
                             ? Image.file(_selectedImage!, fit: BoxFit.cover, width: double.infinity, height: 150)
-                            : const Text('Aucune photo sélectionnée'),
+                            : widget.dish['photoPath'] != null && File(widget.dish['photoPath']).existsSync()
+                                ? Image.file(File(widget.dish['photoPath']), fit: BoxFit.cover, width: double.infinity, height: 150)
+                                : const Text('Aucune photo sélectionnée'),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -288,25 +313,13 @@ class _AddDishPageState extends State<AddDishPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text('Ajouter une photo'),
+                      child: const Text('Modifier la photo'),
                     ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _saveDish,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: tealColor,
-                foregroundColor: whiteColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 15),
-              ),
-              child: const Text('Enregistrer le plat', style: TextStyle(fontSize: 16)),
-            ),
           ],
         ),
       ),
