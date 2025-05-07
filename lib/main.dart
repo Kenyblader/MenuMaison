@@ -25,6 +25,7 @@ class MenuMaisonApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: appTheme,
+      debugShowCheckedModeBanner: false,
       initialRoute: isProfileConfigured() ? '/home' : '/',
       routes: {
         '/': (context) => const LoginPage(),
