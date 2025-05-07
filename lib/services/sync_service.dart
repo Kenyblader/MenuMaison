@@ -1,5 +1,4 @@
 // lib/services/sync_service.dart
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:menu_maison/backend/database/database_helper.dart';
 import 'package:menu_maison/services/nest_service.dart';
 import 'dart:async';

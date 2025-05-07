@@ -85,4 +85,34 @@ class AuthRepositoryImpl implements AuthRepository {
     }
     return null;
   }
+
+  Future<void> updateUserWithServerId(int localId, int serverId) async {
+    final db = await _db;
+    await db.update(
+      _tableUsers,
+      {'id': serverId},
+      where: 'id = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  Future<void> markUserSynced(int localId) async {
+    final db = await _db;
+    await db.update(
+      _tableUsers,
+      {'synced': 1},
+      where: 'id = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  Future<List<UserEntity>> getUnsyncedUsers() async {
+    final db = await _db;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _tableUsers,
+      where: 'synced = ?',
+      whereArgs: [0],
+    );
+    return List.generate(maps.length, (i) => UserEntity.fromMap(maps[i]));
+  }
 }

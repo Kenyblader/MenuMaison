@@ -30,6 +30,8 @@ class DatabaseHelper {
             email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
             name TEXT
+            synced INTEGER DEFAULT 0,
+            lastUpdated INTEGER
           )
         ''');
         await db.execute('''
@@ -48,6 +50,8 @@ class DatabaseHelper {
             babies INTEGER NOT NULL,
             dietaryRestrictions TEXT,
             region TEXT
+            synced INTEGER DEFAULT 0,
+            lastUpdated INTEGER
           )
         ''');
         await db.execute('''
@@ -61,6 +65,8 @@ class DatabaseHelper {
             tutorialLink TEXT,
             ingredients TEXT, -- Liste d'ingrédients au format JSON : [{'name': String, 'price': double}]
             photoPath TEXT
+            synced INTEGER DEFAULT 0,
+            lastUpdated INTEGER
           )
         ''');
       },

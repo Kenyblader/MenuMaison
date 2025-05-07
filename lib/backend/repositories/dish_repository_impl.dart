@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:menu_maison/backend/entities/dish_entity.dart';
+
 import '../database/database_helper.dart';
 import 'dish_repository.dart';
 
@@ -41,5 +43,45 @@ class DishRepositoryImpl implements DishRepository {
   Future<void> deleteDish(int id) async {
     final db = await _dbHelper.database;
     await db.delete('dishes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> updateDishWithServerId(int localId, int serverId) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      'dishes',
+      {'id': serverId},
+      where: 'localId = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  Future<void> markDishSynced(int localId) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      'dishes',
+      {'synced': 1},
+      where: 'localId = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  Future<List<DishEntity>> getUnsyncedDishes() async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'dishes',
+      where: 'synced = ?',
+      whereArgs: [0],
+    );
+    return List.generate(maps.length, (i) => DishEntity.fromMap(maps[i]));
+  }
+
+  Future<List<int>> getAllDishIds() async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'dishes',
+      columns: ['id'],
+      where: 'id IS NOT NULL',
+    );
+    return List.generate(maps.length, (i) => maps[i]['id'] as int);
   }
 }
