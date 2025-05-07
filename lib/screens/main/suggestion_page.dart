@@ -136,7 +136,7 @@ class _SuggestionPageState extends State<SuggestionPage> {
             ),
           ],
         ),
-      ),
+      ), 
     );
   }
 
