@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:menu_maison/services/gemini_service.dart';
 import 'package:menu_maison/utils/theme.dart';
 
 class SuggestionPage extends StatefulWidget {
@@ -9,9 +10,32 @@ class SuggestionPage extends StatefulWidget {
 }
 
 class _SuggestionPageState extends State<SuggestionPage> {
-  double _budget = 20.0;
-  int _numberOfPeople = 4;
-  String _preference = 'Aucune';
+  final TextEditingController _budgetController = TextEditingController();
+  final TextEditingController _numberOfPeopleController =
+      TextEditingController();
+  String? _preference;
+  final gemini = Geminservice();
+  final List<DishModel> suggestDishes = [];
+
+  _getSuggestions() async {
+    try {
+      final suggestions = await gemini.GetMEnuByBudget(
+        _budgetController.text,
+        int.parse(_numberOfPeopleController.text),
+        _preference ?? 'Aucune',
+      );
+      setState(() {
+        suggestDishes.clear();
+        suggestDishes.addAll(suggestions);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la récupération des suggestions : $e'),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +45,13 @@ class _SuggestionPageState extends State<SuggestionPage> {
         backgroundColor: tealColor,
         foregroundColor: whiteColor,
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-          ),
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              ),
         ),
       ),
       body: SingleChildScrollView(
@@ -42,23 +67,22 @@ class _SuggestionPageState extends State<SuggestionPage> {
                   children: [
                     const Text(
                       'Paramètres de suggestion',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Poppins',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       decoration: InputDecoration(
-                        labelText: 'Budget (€)',
+                        labelText: 'Budget (CFA)',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       keyboardType: TextInputType.number,
-                      controller: TextEditingController(text: _budget.toString()),
-                      onChanged: (value) {
-                        setState(() {
-                          _budget = double.tryParse(value) ?? _budget;
-                        });
-                      },
+                      controller: _budgetController,
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -69,12 +93,7 @@ class _SuggestionPageState extends State<SuggestionPage> {
                         ),
                       ),
                       keyboardType: TextInputType.number,
-                      controller: TextEditingController(text: _numberOfPeople.toString()),
-                      onChanged: (value) {
-                        setState(() {
-                          _numberOfPeople = int.tryParse(value) ?? _numberOfPeople;
-                        });
-                      },
+                      controller: _numberOfPeopleController,
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
@@ -86,21 +105,38 @@ class _SuggestionPageState extends State<SuggestionPage> {
                         ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'Aucune', child: Text('Aucune')),
-                        DropdownMenuItem(value: 'Végétarien', child: Text('Végétarien')),
-                        DropdownMenuItem(value: 'Sans gluten', child: Text('Sans gluten')),
+                        DropdownMenuItem(
+                          value: 'Aucune',
+                          child: Text('Aucune'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Végétarien',
+                          child: Text('Végétarien'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Sans gluten',
+                          child: Text('Sans gluten'),
+                        ),
                       ],
                       onChanged: (value) {
                         setState(() {
-                          _preference = value!;
+                          _preference = value;
                         });
                       },
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () {
-                        // Simule la génération de suggestions
-                        setState(() {});
+                        if (_budgetController.text.isEmpty ||
+                            _numberOfPeopleController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Veuillez remplir tous les champs'),
+                            ),
+                          );
+                          return;
+                        }
+                        _getSuggestions();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: tealColor,
@@ -109,8 +145,12 @@ class _SuggestionPageState extends State<SuggestionPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 15),
+                        minimumSize: const Size(double.infinity, 50),
                       ),
-                      child: const Text('Générer des suggestions', style: TextStyle(fontSize: 16)),
+                      child: const Text(
+                        'Générer des suggestions',
+                        style: TextStyle(fontSize: 16, fontFamily: 'Poppins'),
+                      ),
                     ),
                   ],
                 ),
@@ -125,11 +165,36 @@ class _SuggestionPageState extends State<SuggestionPage> {
                   children: [
                     const Text(
                       'Suggestions de menus',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Poppins',
+                      ),
                     ),
                     const SizedBox(height: 10),
-                    _buildSuggestionCard('Menu 1: Pasta & Salad', '10€', 'Végétarien'),
-                    _buildSuggestionCard('Menu 2: Chicken & Rice', '15€', 'Sans gluten'),
+                    suggestDishes.isEmpty
+                        ? const Center(
+                          child: Text(
+                            'Aucune suggestion disponible',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                        )
+                        : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: suggestDishes.length,
+                          itemBuilder: (context, index) {
+                            final dish = suggestDishes[index];
+                            return _buildSuggestionCard(
+                              dish.name,
+                              '${dish.total} CFA',
+                              _preference ?? 'Aucune',
+                            );
+                          },
+                        ),
                   ],
                 ),
               ),
@@ -144,12 +209,21 @@ class _SuggestionPageState extends State<SuggestionPage> {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 5.0),
       child: ListTile(
-        title: Text(title),
-        subtitle: Text('Coût: $cost | Préférence: $preference'),
+        title: Text(
+          title,
+          style: const TextStyle(fontFamily: 'Poppins', fontSize: 16),
+        ),
+        subtitle: Text(
+          'Coût : $cost | Préférence : $preference',
+          style: const TextStyle(fontFamily: 'Poppins', fontSize: 14),
+        ),
         trailing: IconButton(
           icon: const Icon(Icons.add, color: tealColor),
           onPressed: () {
-            // Ajoute le menu au planning (simulé)
+            // Ajoute le menu au planning (à implémenter)
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$title ajouté au planning')),
+            );
           },
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:menu_maison/services/gemini_service.dart';
 import 'package:menu_maison/utils/theme.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
@@ -18,6 +19,7 @@ import 'backend/repositories/family_profile_repository_impl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Geminservice.init();
   final authRepository = AuthRepositoryImpl();
   final familyProfileRepository = FamilyProfileRepositoryImpl();
   await authRepository.init();
@@ -54,6 +56,7 @@ class MenuMaisonApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: appTheme,
+      debugShowCheckedModeBanner: false,
       initialRoute:
           currentUser != null
               ? (isProfileConfigured ? '/home' : '/family-profile-setup')

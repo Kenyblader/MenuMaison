@@ -22,12 +22,13 @@ class HomePage extends StatelessWidget {
           backgroundColor: tealColor,
           foregroundColor: whiteColor,
           leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            ),
+            builder:
+                (context) => IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () {
+                    Scaffold.of(context).openDrawer();
+                  },
+                ),
           ),
         ),
         drawer: Drawer(
@@ -35,9 +36,7 @@ class HomePage extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(
-                  color: tealColor,
-                ),
+                decoration: const BoxDecoration(color: tealColor),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -106,20 +105,38 @@ class HomePage extends StatelessWidget {
                     children: [
                       const Text(
                         'Vue d\'ensemble',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Expanded(
-                            child: _buildHomeCard('Plats', Icons.fastfood, '/dishes', context),
+                            child: _buildHomeCard(
+                              'Plats',
+                              Icons.fastfood,
+                              '/dishes',
+                              context,
+                            ),
                           ),
                           Expanded(
-                            child: _buildHomeCard('Planning', Icons.calendar_today, '/planning', context),
+                            child: _buildHomeCard(
+                              'Planning',
+                              Icons.calendar_today,
+                              '/planning',
+                              context,
+                            ),
                           ),
                           Expanded(
-                            child: _buildHomeCard('Courses', Icons.shopping_cart, '/shopping', context),
+                            child: _buildHomeCard(
+                              'Courses',
+                              Icons.shopping_cart,
+                              '/shopping',
+                              context,
+                            ),
                           ),
                         ],
                       ),
@@ -128,10 +145,20 @@ class HomePage extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Expanded(
-                            child: _buildHomeCard('Suggestions', Icons.lightbulb, '/suggestions', context),
+                            child: _buildHomeCard(
+                              'Suggestions',
+                              Icons.lightbulb,
+                              '/suggestions',
+                              context,
+                            ),
                           ),
                           Expanded(
-                            child: _buildHomeCard('Statistiques', Icons.bar_chart, '/statistics', context),
+                            child: _buildHomeCard(
+                              'Statistiques',
+                              Icons.bar_chart,
+                              '/statistics',
+                              context,
+                            ),
                           ),
                         ],
                       ),
@@ -148,7 +175,10 @@ class HomePage extends StatelessWidget {
                     children: [
                       const Text(
                         'Suggestions du jour',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       SizedBox(
@@ -172,7 +202,12 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHomeCard(String title, IconData icon, String route, BuildContext context) {
+  Widget _buildHomeCard(
+    String title,
+    IconData icon,
+    String route,
+    BuildContext context,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(context, route);
@@ -200,10 +235,13 @@ class HomePage extends StatelessWidget {
   Widget _buildSuggestionCard(String name, IconData icon) {
     return Card(
       margin: const EdgeInsets.only(right: 10),
-      child: ListTile(
-        leading: Icon(icon, color: tealColor),
-        title: Text(name),
-        trailing: const Icon(Icons.arrow_forward_ios, color: tealColor),
+      child: Container(
+        width: double.infinity,
+        child: ListTile(
+          leading: Icon(icon, color: tealColor),
+          title: Text(name),
+          trailing: const Icon(Icons.arrow_forward_ios, color: tealColor),
+        ),
       ),
     );
   }

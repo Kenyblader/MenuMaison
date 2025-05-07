@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:sqflite/sqflite.dart';
 import '../database/database_helper.dart';
 import 'dish_repository.dart';
 
@@ -41,10 +40,6 @@ class DishRepositoryImpl implements DishRepository {
   @override
   Future<void> deleteDish(int id) async {
     final db = await _dbHelper.database;
-    await db.delete(
-      'dishes',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('dishes', where: 'id = ?', whereArgs: [id]);
   }
 }
