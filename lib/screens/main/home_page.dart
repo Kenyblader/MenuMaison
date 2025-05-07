@@ -1,153 +1,172 @@
 import 'package:flutter/material.dart';
 import 'package:menu_maison/utils/theme.dart';
+import '../../backend/repositories/auth_repository_impl.dart';
+import 'package:flutter/services.dart'; // Ajout pour SystemNavigator.pop
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('MenuMaison'),
-        backgroundColor: tealColor,
-        foregroundColor: whiteColor,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
+    final authRepository = AuthRepositoryImpl();
+
+    return WillPopScope(
+      onWillPop: () async {
+        // Quitter l'application directement
+        SystemNavigator.pop();
+        return false; // Empêche la navigation par défaut
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('MenuMaison'),
+          backgroundColor: tealColor,
+          foregroundColor: whiteColor,
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            ),
           ),
         ),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                color: tealColor,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'MenuMaison',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: whiteColor,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Bienvenue !',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: whiteColor.withOpacity(0.8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home, color: tealColor),
-              title: const Text('Accueil'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person, color: tealColor),
-              title: const Text('Profil'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/profile');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings, color: tealColor),
-              title: const Text('Paramètres'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/settings');
-              },
-            ),
-          ],
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Vue d\'ensemble',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          child: _buildHomeCard('Plats', Icons.fastfood, '/dishes', context),
-                        ),
-                        Expanded(
-                          child: _buildHomeCard('Planning', Icons.calendar_today, '/planning', context),
-                        ),
-                        Expanded(
-                          child: _buildHomeCard('Courses', Icons.shopping_cart, '/shopping', context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          child: _buildHomeCard('Suggestions', Icons.lightbulb, '/suggestions', context),
-                        ),
-                        Expanded(
-                          child: _buildHomeCard('Statistiques', Icons.bar_chart, '/statistics', context),
-                        ),
-                      ],
-                    ),
-                  ],
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: const BoxDecoration(
+                  color: tealColor,
                 ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Suggestions du jour',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      'MenuMaison',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: whiteColor,
+                      ),
                     ),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      height: 100,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _buildSuggestionCard('Pizza', Icons.local_pizza),
-                          _buildSuggestionCard('Salade', Icons.local_dining),
-                        ],
+                    Text(
+                      'Bienvenue !',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: whiteColor.withOpacity(0.8),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+              ListTile(
+                leading: const Icon(Icons.home, color: tealColor),
+                title: const Text('Accueil'),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person, color: tealColor),
+                title: const Text('Profil'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/profile');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings, color: tealColor),
+                title: const Text('Paramètres'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/settings');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout, color: tealColor),
+                title: const Text('Déconnexion'),
+                onTap: () async {
+                  await authRepository.logout();
+                  Navigator.pushReplacementNamed(context, '/');
+                },
+              ),
+            ],
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Vue d\'ensemble',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(
+                            child: _buildHomeCard('Plats', Icons.fastfood, '/dishes', context),
+                          ),
+                          Expanded(
+                            child: _buildHomeCard('Planning', Icons.calendar_today, '/planning', context),
+                          ),
+                          Expanded(
+                            child: _buildHomeCard('Courses', Icons.shopping_cart, '/shopping', context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(
+                            child: _buildHomeCard('Suggestions', Icons.lightbulb, '/suggestions', context),
+                          ),
+                          Expanded(
+                            child: _buildHomeCard('Statistiques', Icons.bar_chart, '/statistics', context),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Suggestions du jour',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 100,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            _buildSuggestionCard('Pizza', Icons.local_pizza),
+                            _buildSuggestionCard('Salade', Icons.local_dining),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

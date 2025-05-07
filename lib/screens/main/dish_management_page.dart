@@ -1,9 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:menu_maison/utils/theme.dart';
 import 'add_dish_page.dart';
+import 'dish_detail_page.dart';
+import '../../backend/repositories/dish_repository_impl.dart';
+import 'dart:io';
 
-class DishManagementPage extends StatelessWidget {
+class DishManagementPage extends StatefulWidget {
   const DishManagementPage({super.key});
+
+  @override
+  State<DishManagementPage> createState() => _DishManagementPageState();
+}
+
+class _DishManagementPageState extends State<DishManagementPage> {
+  final DishRepositoryImpl _dishRepository = DishRepositoryImpl();
+  List<Map<String, dynamic>> dishes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDishes();
+  }
+
+  Future<void> _loadDishes() async {
+    final loadedDishes = await _dishRepository.getDishes();
+    setState(() {
+      dishes = loadedDishes;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +82,21 @@ class DishManagementPage extends StatelessWidget {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
-          _buildDishCard('Lasagnes', '45 min', '4 personnes'),
-          _buildDishCard('Quiche Lorraine', '30 min', '6 personnes'),
+          ...dishes.map((dish) => _buildDishCard(
+                dish['name'],
+                '${dish['prepTime'] + dish['cookTime']} min',
+                '${dish['servings']} personnes',
+                dish['id'],
+                dish['photoPath'],
+              )).toList(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/add-dish');
+        onPressed: () async {
+          final result = await Navigator.pushNamed(context, '/add-dish');
+          if (result == true) {
+            _loadDishes();
+          }
         },
         backgroundColor: tealColor,
         child: const Icon(Icons.add, color: whiteColor),
@@ -90,23 +122,52 @@ class DishManagementPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDishCard(String name, String time, String servings) {
+  Widget _buildDishCard(String name, String time, String servings, int? id, String? photoPath) {
     return Card(
       child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: tealColor,
-          child: Icon(Icons.fastfood, color: whiteColor),
-        ),
+        leading: photoPath != null && File(photoPath).existsSync()
+            ? CircleAvatar(
+                backgroundImage: FileImage(File(photoPath)),
+              )
+            : const CircleAvatar(
+                backgroundColor: tealColor,
+                child: Icon(Icons.fastfood, color: whiteColor),
+              ),
         title: Text(name),
         subtitle: Text('$time • $servings'),
-        trailing: IconButton(
-          icon: const Icon(Icons.share, color: tealColor),
-          onPressed: () {
-            // Logique de partage ici
-          },
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.share, color: tealColor),
+              onPressed: () {
+                // Logique de partage ici
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () {
+                if (id != null) {
+                  _dishRepository.deleteDish(id);
+                  _loadDishes();
+                }
+              },
+            ),
+          ],
         ),
         onTap: () {
-          // Afficher les détails du plat (à implémenter plus tard)
+          if (id != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DishDetailPage(dish: Map<String, dynamic>.from(dishes.firstWhere((d) => d['id'] == id))),
+              ),
+            ).then((value) {
+              if (value == true) {
+                _loadDishes(); // Rafraîchir la liste après modification
+              }
+            });
+          }
         },
       ),
     );

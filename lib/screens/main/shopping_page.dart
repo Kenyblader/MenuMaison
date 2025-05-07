@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:menu_maison/utils/theme.dart';
+import '../../backend/repositories/dish_repository_impl.dart';
 
 class ShoppingPage extends StatefulWidget {
   const ShoppingPage({super.key});
@@ -10,11 +11,95 @@ class ShoppingPage extends StatefulWidget {
 
 class _ShoppingPageState extends State<ShoppingPage> {
   String _selectedPeriod = 'Hebdomadaire';
-  final List<Map<String, dynamic>> _ingredients = [
-    {'name': 'Tomates', 'quantity': 500, 'unit': 'g', 'price': 2.5},
-    {'name': 'Pâtes', 'quantity': 400, 'unit': 'g', 'price': 1.8},
-    {'name': 'Fromage', 'quantity': 200, 'unit': 'g', 'price': 3.0},
-  ];
+  List<Map<String, dynamic>> _ingredients = [];
+  final _dishRepository = DishRepositoryImpl();
+  final _newItemNameController = TextEditingController();
+  final _newItemPriceController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadIngredients();
+  }
+
+  Future<void> _loadIngredients() async {
+    final dishes = await _dishRepository.getDishes();
+    final Map<String, List<Map<String, dynamic>>> groupedIngredients = {};
+
+    // Regrouper les ingrédients par nom
+    for (var dish in dishes) {
+      final ingredients = List<Map<String, dynamic>>.from(dish['ingredients'] ?? []);
+      for (var ingredient in ingredients) {
+        final name = ingredient['name'];
+        if (!groupedIngredients.containsKey(name)) {
+          groupedIngredients[name] = [];
+        }
+        groupedIngredients[name]!.add({
+          'name': name,
+          'price': ingredient['price'] ?? 0.0,
+        });
+      }
+    }
+
+    // Calculer la quantité et le coût total pour chaque groupe
+    final List<Map<String, dynamic>> uniqueIngredients = [];
+    groupedIngredients.forEach((name, ingredientList) {
+      final quantity = ingredientList.length;
+      final totalCost = ingredientList.fold<double>(
+        0.0,
+        (sum, item) => sum + (item['price'] as double),
+      );
+      uniqueIngredients.add({
+        'name': name,
+        'quantity': quantity,
+        'totalCost': totalCost,
+      });
+    });
+
+    setState(() {
+      _ingredients = uniqueIngredients;
+    });
+  }
+
+  void _addNewItem() {
+    if (_newItemNameController.text.isEmpty || _newItemPriceController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez remplir tous les champs')),
+      );
+      return;
+    }
+
+    setState(() {
+      final name = _newItemNameController.text;
+      final price = double.parse(_newItemPriceController.text);
+      // Vérifier si l'ingrédient existe déjà
+      final existingIngredient = _ingredients.firstWhere(
+        (ingredient) => ingredient['name'] == name,
+        orElse: () => {},
+      );
+      if (existingIngredient.isNotEmpty) {
+        // Si l'ingrédient existe, augmenter la quantité et ajouter au coût total
+        existingIngredient['quantity'] += 1;
+        existingIngredient['totalCost'] += price;
+      } else {
+        // Sinon, ajouter un nouvel ingrédient
+        _ingredients.add({
+          'name': name,
+          'quantity': 1,
+          'totalCost': price,
+        });
+      }
+      _newItemNameController.clear();
+      _newItemPriceController.clear();
+    });
+  }
+
+  @override
+  void dispose() {
+    _newItemNameController.dispose();
+    _newItemPriceController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +123,6 @@ class _ShoppingPageState extends State<ShoppingPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Sélection de la période
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -65,7 +149,6 @@ class _ShoppingPageState extends State<ShoppingPage> {
                         onChanged: (value) {
                           setState(() {
                             _selectedPeriod = value!;
-                            // Logique pour mettre à jour la liste en fonction de la période
                           });
                         },
                       ),
@@ -74,7 +157,6 @@ class _ShoppingPageState extends State<ShoppingPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Liste des ingrédients
               const Text(
                 'Ingrédients nécessaires',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -90,52 +172,26 @@ class _ShoppingPageState extends State<ShoppingPage> {
                     margin: const EdgeInsets.symmetric(vertical: 5.0),
                     child: ListTile(
                       title: Text(ingredient['name']),
-                      subtitle: Row(
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                labelText: 'Quantité',
-                                suffixText: ingredient['unit'],
-                                border: const OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.number,
-                              controller: TextEditingController(
-                                text: ingredient['quantity'].toString(),
-                              ),
-                              onChanged: (value) {
-                                setState(() {
-                                  ingredient['quantity'] = int.tryParse(value) ?? ingredient['quantity'];
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              decoration: const InputDecoration(
-                                labelText: 'Prix (€)',
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.number,
-                              controller: TextEditingController(
-                                text: ingredient['price'].toString(),
-                              ),
-                              onChanged: (value) {
-                                setState(() {
-                                  ingredient['price'] = double.tryParse(value) ?? ingredient['price'];
-                                });
-                              },
-                            ),
-                          ),
+                          Text('Quantité: ${ingredient['quantity']}'),
+                          Text('Coût total: ${ingredient['totalCost'].toStringAsFixed(2)} €'),
                         ],
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () {
+                          setState(() {
+                            _ingredients.removeAt(index);
+                          });
+                        },
                       ),
                     ),
                   );
                 },
               ),
               const SizedBox(height: 20),
-              // Ajouter un élément supplémentaire
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -148,6 +204,7 @@ class _ShoppingPageState extends State<ShoppingPage> {
                       ),
                       const SizedBox(height: 10),
                       TextField(
+                        controller: _newItemNameController,
                         decoration: InputDecoration(
                           labelText: 'Nom de l\'élément',
                           border: OutlineInputBorder(
@@ -156,40 +213,8 @@ class _ShoppingPageState extends State<ShoppingPage> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              decoration: InputDecoration(
-                                labelText: 'Quantité',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              hint: const Text('Unité'),
-                              items: const [
-                                DropdownMenuItem(value: 'g', child: Text('g')),
-                                DropdownMenuItem(value: 'ml', child: Text('ml')),
-                                DropdownMenuItem(value: 'unité', child: Text('unité')),
-                              ],
-                              onChanged: (value) {},
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
                       TextField(
+                        controller: _newItemPriceController,
                         decoration: InputDecoration(
                           labelText: 'Prix estimé (€)',
                           border: OutlineInputBorder(
@@ -202,9 +227,7 @@ class _ShoppingPageState extends State<ShoppingPage> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: ElevatedButton(
-                          onPressed: () {
-                            // Logique pour ajouter l'élément à la liste
-                          },
+                          onPressed: _addNewItem,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: tealColor,
                             foregroundColor: whiteColor,
@@ -220,10 +243,8 @@ class _ShoppingPageState extends State<ShoppingPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Bouton de partage
               ElevatedButton(
                 onPressed: () {
-                  // Simule le partage de la liste
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Liste partagée (simulé)')),
                   );
