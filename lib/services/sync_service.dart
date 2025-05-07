@@ -1,200 +1,156 @@
-// import 'dart:async';
+// lib/services/sync_service.dart
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:menu_maison/backend/database/database_helper.dart';
+import 'package:menu_maison/services/nest_service.dart';
+import 'dart:async';
 
-// import 'package:menu_maison/backend/database/database_helper.dart';
-// import 'package:menu_maison/backend/entities/dish_entity.dart';
-// import 'package:menu_maison/backend/entities/family_profile_entity.dart';
-// import 'package:menu_maison/backend/entities/user_entity.dart';
-// import 'package:menu_maison/services/nest_service.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
+class SyncService {
+  final DatabaseHelper dbHelper = DatabaseHelper();
+  final ApiService apiService = ApiService();
+  final Connectivity _connectivity = Connectivity();
+  StreamSubscription? _connectivitySubscription;
+  bool _isSyncing = false;
 
-// class SyncService {
-//   final DatabaseHelper sqliteService;
-//   final BackendServices nestService;
+  // Initialiser la synchronisation
+  void initialize() {
+    // Vérifier la connectivité au démarrage
+    _checkConnectivity();
 
-//   // Paramètres de synchronisation
-//   final Duration syncInterval;
-//   bool isSyncActive = false;
-//   Timer? _syncTimer;
+    // Écouter les changements de connectivité
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((_) {
+      _checkConnectivity();
+    });
+  }
 
-//   // Tables à synchroniser et leur mappage avec des modèles
-//   final Map<String, Function(Map<String, dynamic>)> modelFactories = {
-//     'users': (json) => UserEntity.fromMap(json),
-//     'dishes': (json) => DishEntity.fromMap(json),
-//     'family_profiles': (json) => FamilyProfileEntity.fromMap(json),
-//   };
+  // Vérifier la connectivité et synchroniser si possible
+  Future<void> _checkConnectivity() async {
+    var connectivityResult = await _connectivity.checkConnectivity();
+    if (connectivityResult != ConnectivityResult.none && !_isSyncing) {
+      syncData();
+    }
+  }
 
-//   SyncService({
-//     required this.sqliteService,
-//     required this.nestService,
-//     this.syncInterval = const Duration(minutes: 15),
-//   }) {
-//     // Initialiser l'écoute des changements de connectivité
-//   }
+  // Synchroniser les données
+  Future<void> syncData() async {
+    if (_isSyncing) return;
 
-//   // Démarrer les synchronisations périodiques
-//   void startPeriodicSync() {
-//     if (_syncTimer != null) return;
+    _isSyncing = true;
+    try {
+      // Synchroniser les utilisateurs
+      await _syncUsers();
 
-//     isSyncActive = true;
-//     _syncTimer = Timer.periodic(syncInterval, (_) => syncAll());
-//   }
+      // Synchroniser les plats
+      await _syncDishes();
 
-//   // Arrêter les synchronisations périodiques
-//   void stopPeriodicSync() {
-//     isSyncActive = false;
-//     _syncTimer?.cancel();
-//     _syncTimer = null;
-//   }
+      // Synchroniser les profils de famille
+      await _syncFamilyProfiles();
 
-//   // Synchroniser toutes les tables
-//   Future<void> syncAll() async {
-//     try {
-//       // Vérifier la connectivité
+      print('Synchronisation terminée');
+    } catch (e) {
+      print('Erreur de synchronisation: $e');
+    } finally {
+      _isSyncing = false;
+    }
+  }
 
-//       // Pour chaque table à synchroniser
-//       for (String table in modelFactories.keys) {
-//         print("synchorinsation de la table $table");
-//         await _syncTable(table);
-//       }
+  // Synchroniser les utilisateurs
+  Future<void> _syncUsers() async {
+    // 1. Récupérer les utilisateurs locaux à synchroniser
+    final localUsers = await dbHelper.getUnsyncedUsers();
 
-//       // Mettre à jour la date de dernière synchronisation
-//       await _updateLastSyncTime();
-//     } catch (e) {
-//       print('Error during synchronization: $e');
-//     }
-//   }
+    // 2. Pour chaque utilisateur local
+    for (var user in localUsers) {
+      try {
+        // 3. Envoyer au serveur
+        if (user.id == null) {
+          // Nouvel utilisateur
+          final serverUser = await apiService.createUser(user);
+          // Mettre à jour l'ID local avec l'ID du serveur
+          await dbHelper.updateUserWithServerId(user.localId!, serverUser.id!);
+        } else {
+          // Mise à jour d'un utilisateur existant
+          await apiService.updateUser(user);
+        }
 
-//   // Synchroniser une table spécifique
-//   Future<void> _syncTable(String table) async {
-//     try {
-//       // 1. Pousser les modifications locales vers le serveur
-//       await _pushLocalChanges(table);
+        // 4. Marquer comme synchronisé
+        await dbHelper.markUserSynced(user.localId!);
+      } catch (e) {
+        print('Erreur synchronisation utilisateur: $e');
+      }
+    }
 
-//       // 2. Récupérer les modifications du serveur
-//       await _pullRemoteChanges(table);
-//     } catch (e, st) {
-//       print('Error syncing table $table: $e');
-//       print('stack trace: $st');
-//     }
-//   }
+    // 5. Récupérer les utilisateurs du serveur (si nécessaire)
+    // Cette étape est optionnelle selon votre logique d'application
+  }
 
-//   // Envoyer les modifications locales au serveur
-//   Future<void> _pushLocalChanges(String table) async {
-//     // Récupérer les changements locaux en attente
-//     List<Map<String, dynamic>> pendingChanges = await sqliteService
-//         .getPendingChanges(table);
+  // Synchroniser les plats
+  Future<void> _syncDishes() async {
+    // 1. Récupérer les plats locaux à synchroniser
+    final localDishes = await dbHelper.getUnsyncedDishes();
 
-//     if (pendingChanges.isEmpty) return;
+    // 2. Pour chaque plat local
+    for (var dish in localDishes) {
+      try {
+        // 3. Envoyer au serveur
+        if (dish.id == null) {
+          // Nouveau plat
+          final serverDish = await apiService.createDish(dish);
+          await dbHelper.updateDishWithServerId(dish.localId!, serverDish.id!);
+        } else {
+          // Mise à jour d'un plat existant
+          await apiService.updateDish(dish);
+        }
 
-//     try {
-//       // Envoyer les changements en lot
-//       await nestService.pushChanges(table, pendingChanges);
+        // 4. Marquer comme synchronisé
+        await dbHelper.markDishSynced(dish.localId!);
+      } catch (e) {
+        print('Erreur synchronisation plat: $e');
+      }
+    }
 
-//       // Marquer les éléments comme synchronisés
-//       for (var change in pendingChanges) {
-//         await sqliteService.markAsSynced(table, change['id']);
-//       }
-//     } catch (e) {
-//       print('Error pushing changes for $table: $e');
-//       // Ici, vous pouvez implémenter une logique de retry ou de notification
-//     }
-//   }
+    // 5. Récupérer les nouveaux plats du serveur
+    try {
+      final serverDishes = await apiService.getAllDishes();
+      final localDishIds = await dbHelper.getAllDishIds();
 
-//   // Récupérer les modifications du serveur
-//   Future<void> _pullRemoteChanges(String table) async {
-//     try {
-//       // Récupérer la date de dernière synchronisation
-//       DateTime lastSyncTime = await _getLastSyncTime();
+      // Ajouter les plats qui n'existent pas localement
+      for (var dish in serverDishes) {
+        if (!localDishIds.contains(dish.id)) {
+          await dbHelper.insertDish(dish, synced: true);
+        }
+      }
+    } catch (e) {
+      print('Erreur récupération plats serveur: $e');
+    }
+  }
 
-//       // Récupérer les changements du serveur depuis la dernière synchronisation
-//       List<Map<String, dynamic>> remoteChanges = await nestService.getChanges(
-//         table,
-//         lastSyncTime,
-//       );
+  // Synchroniser les profils de famille
+  Future<void> _syncFamilyProfiles() async {
+    // Implémentation similaire aux autres méthodes
+    final localProfiles = await dbHelper.getUnsyncedFamilyProfiles();
 
-//       // Traiter chaque changement
-//       for (var remoteChange in remoteChanges) {
-//         await _processRemoteChange(table, remoteChange);
-//       }
-//     } catch (e) {
-//       print('Error pulling changes for $table: $e');
-//     }
-//   }
+    for (var profile in localProfiles) {
+      try {
+        if (profile.id == null) {
+          final serverProfile = await apiService.createFamilyProfile(profile);
+          await dbHelper.updateFamilyProfileWithServerId(
+            profile.localId!,
+            serverProfile.id!,
+          );
+        } else {
+          // Supposons que vous avez une méthode updateFamilyProfile dans ApiService
+          await apiService.updateFamilyProfile(profile);
+        }
 
-//   // Traiter un changement distant
-//   Future<void> _processRemoteChange(
-//     String table,
-//     Map<String, dynamic> remoteChange,
-//   ) async {
-//     String id = remoteChange['id'];
+        await dbHelper.markFamilyProfileSynced(profile.localId!);
+      } catch (e) {
+        print('Erreur synchronisation profil famille: $e');
+      }
+    }
+  }
 
-//     // Vérifier si l'élément existe déjà localement
-//     Map<String, dynamic>? localData = await sqliteService.getById(table, id);
-
-//     if (localData == null) {
-//       // Si l'élément n'existe pas localement, l'ajouter
-//       remoteChange['sync_status'] = 'synced';
-//       await sqliteService.insert(table, remoteChange);
-//     } else {
-//       // Si l'élément existe localement, vérifier les conflits
-//       DateTime localModified = DateTime.parse(localData['last_modified']);
-//       DateTime remoteModified = DateTime.parse(remoteChange['last_modified']);
-
-//       if (localData['sync_status'] == 'pending') {
-//         // Si l'élément local est en attente de synchronisation, il y a un conflit potentiel
-//         Syncable localModel = modelFactories[table]!(localData);
-//         Syncable remoteModel = modelFactories[table]!(remoteChange);
-
-//         if (localModel.hasConflictWith(remoteModel)) {
-//           // Marquer comme conflit pour une résolution manuelle
-//           await sqliteService.markAsConflict(table, id);
-//         } else if (remoteModified.isAfter(localModified)) {
-//           // La version distante est plus récente, l'appliquer
-//           remoteChange['sync_status'] = 'synced';
-//           await sqliteService.update(table, remoteChange);
-//         }
-//       } else {
-//         // Si l'élément local est synchronisé ou en conflit, mettre à jour s'il est plus ancien
-//         if (remoteModified.isAfter(localModified)) {
-//           remoteChange['sync_status'] = 'synced';
-//           await sqliteService.update(table, remoteChange);
-//         }
-//       }
-//     }
-//   }
-
-//   // Récupérer la date de dernière synchronisation
-//   Future<DateTime> _getLastSyncTime() async {
-//     SharedPreferences prefs = await SharedPreferences.getInstance();
-//     String? lastSyncStr = prefs.getString('last_sync_time');
-
-//     if (lastSyncStr == null) {
-//       // Si pas de synchronisation précédente, utiliser une date très ancienne
-//       return DateTime(2000);
-//     }
-
-//     return DateTime.parse(lastSyncStr);
-//   }
-
-//   // Mettre à jour la date de dernière synchronisation
-//   Future<void> _updateLastSyncTime() async {
-//     SharedPreferences prefs = await SharedPreferences.getInstance();
-//     await prefs.setString('last_sync_time', DateTime.now().toIso8601String());
-//   }
-
-//   // Résoudre manuellement un conflit
-//   Future<void> resolveConflict(
-//     String table,
-//     String id,
-//     Map<String, dynamic> resolvedData,
-//   ) async {
-//     // Mettre à jour localement
-//     resolvedData['sync_status'] = 'pending';
-//     resolvedData['last_modified'] = DateTime.now().toIso8601String();
-
-//     await sqliteService.update(table, resolvedData);
-
-//     // Déclencher une synchronisation pour envoyer la résolution
-//     await _pushLocalChanges(table);
-//   }
-// }
+  // Nettoyer les ressources
+  void dispose() {
+    _connectivitySubscription?.cancel();
+  }
+}

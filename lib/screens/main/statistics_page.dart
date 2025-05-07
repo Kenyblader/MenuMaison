@@ -27,7 +27,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   // Calcul des plats les plus consommés par période
-  List<MapEntry<String, int>> _getConsumptionData(String period, List<Map<String, dynamic>> dishes) {
+  List<MapEntry<String, int>> _getConsumptionData(
+    String period,
+    List<Map<String, dynamic>> dishes,
+  ) {
     final dishCount = <String, int>{};
     final filteredDishes = dishes.take(_getPeriodLimit(period)).toList();
     for (var dish in filteredDishes) {
@@ -44,9 +47,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final monthlyBudget = <int, double>{};
     final now = DateTime.now();
     for (var dish in dishes) {
-      final createdAt = dish['created_at'] != null
-          ? DateTime.parse(dish['created_at'] as String)
-          : now; // Fallback à la date actuelle si created_at est absent
+      final createdAt =
+          dish['created_at'] != null
+              ? DateTime.parse(dish['created_at'] as String)
+              : now; // Fallback à la date actuelle si created_at est absent
       final month = createdAt.month;
       final ingredients = dish['ingredients'] as List<dynamic>;
       double cost = 0.0;
@@ -58,7 +62,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return monthlyBudget;
   }
 
-  Map<String, int> _getIngredientUsage(String period, List<Map<String, dynamic>> dishes) {
+  Map<String, int> _getIngredientUsage(
+    String period,
+    List<Map<String, dynamic>> dishes,
+  ) {
     final ingredientCount = <String, int>{};
     final filteredDishes = dishes.take(_getPeriodLimit(period)).toList();
     for (var dish in filteredDishes) {
@@ -92,12 +99,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
         backgroundColor: tealColor,
         foregroundColor: whiteColor,
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-          ),
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              ),
         ),
       ),
       body: SingleChildScrollView(
@@ -113,17 +121,21 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   children: [
                     const Text(
                       'Graphique des plats consommés',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     DropdownButton<String>(
                       value: _selectedPeriod,
-                      items: ['Semaine', 'Mois', 'Année'].map((period) {
-                        return DropdownMenuItem<String>(
-                          value: period,
-                          child: Text(period),
-                        );
-                      }).toList(),
+                      items:
+                          ['Semaine', 'Mois', 'Année'].map((period) {
+                            return DropdownMenuItem<String>(
+                              value: period,
+                              child: Text(period),
+                            );
+                          }).toList(),
                       onChanged: (value) {
                         if (value != null) {
                           setState(() {
@@ -137,35 +149,46 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     FutureBuilder<List<Map<String, dynamic>>>(
                       future: _dishesFuture,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         }
                         if (snapshot.hasError) {
-                          return const Text('Erreur lors du chargement des données');
+                          return const Text(
+                            'Erreur lors du chargement des données',
+                          );
                         }
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return const Text('Aucune donnée disponible');
                         }
                         final dishes = snapshot.data!;
-                        final consumptionData = _getConsumptionData(_selectedPeriod, dishes);
+                        final consumptionData = _getConsumptionData(
+                          _selectedPeriod,
+                          dishes,
+                        );
                         return SizedBox(
                           height: 200,
                           child: BarChart(
                             BarChartData(
-                              barGroups: consumptionData.asMap().entries.map((entry) {
-                                return BarChartGroupData(
-                                  x: entry.key,
-                                  barRods: [
-                                    BarChartRodData(
-                                      toY: entry.value.value.toDouble(),
-                                      color: tealColor,
-                                      width: 20,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ],
-                                  showingTooltipIndicators: [0],
-                                );
-                              }).toList(),
+                              barGroups:
+                                  consumptionData.asMap().entries.map((entry) {
+                                    return BarChartGroupData(
+                                      x: entry.key,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: entry.value.value.toDouble(),
+                                          color: tealColor,
+                                          width: 20,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                      ],
+                                      showingTooltipIndicators: [0],
+                                    );
+                                  }).toList(),
                               titlesData: FlTitlesData(
                                 show: true,
                                 bottomTitles: AxisTitles(
@@ -173,12 +196,19 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                     showTitles: true,
                                     getTitlesWidget: (value, meta) {
                                       final index = value.toInt();
-                                      if (index >= 0 && index < consumptionData.length) {
+                                      if (index >= 0 &&
+                                          index < consumptionData.length) {
                                         return Padding(
-                                          padding: const EdgeInsets.only(top: 8.0),
+                                          padding: const EdgeInsets.only(
+                                            top: 8.0,
+                                          ),
                                           child: Text(
-                                            consumptionData[index].key.split(' ').first,
-                                            style: const TextStyle(fontSize: 10),
+                                            consumptionData[index].key
+                                                .split(' ')
+                                                .first,
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                            ),
                                           ),
                                         );
                                       }
@@ -192,7 +222,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
                               ),
                               borderData: FlBorderData(show: false),
                               gridData: FlGridData(show: false),
-                              maxY: (consumptionData.map((e) => e.value).reduce((a, b) => a > b ? a : b) + 1).toDouble(),
+                              maxY:
+                                  (consumptionData
+                                              .map((e) => e.value)
+                                              .reduce((a, b) => a > b ? a : b) +
+                                          1)
+                                      .toDouble(),
                             ),
                           ),
                         );
@@ -211,17 +246,25 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   children: [
                     const Text(
                       'Suivi budgétaire',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     FutureBuilder<List<Map<String, dynamic>>>(
                       future: _dishesFuture,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         }
                         if (snapshot.hasError) {
-                          return const Text('Erreur lors du chargement du budget');
+                          return const Text(
+                            'Erreur lors du chargement du budget',
+                          );
                         }
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return const Text('Aucun budget disponible');
@@ -232,25 +275,32 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         final currentMonth = now.month;
                         return Column(
                           children: [
-                            Text('Budget ce mois-ci (Mois $currentMonth) : ${monthlyBudget[currentMonth]?.toStringAsFixed(2) ?? "0.00"}€'),
+                            Text(
+                              'Budget ce mois-ci (Mois $currentMonth) : ${monthlyBudget[currentMonth]?.toStringAsFixed(2) ?? "0.00"}€',
+                            ),
                             const SizedBox(height: 10),
                             SizedBox(
                               height: 200,
                               child: BarChart(
                                 BarChartData(
-                                  barGroups: monthlyBudget.entries.map((entry) {
-                                    return BarChartGroupData(
-                                      x: entry.key,
-                                      barRods: [
-                                        BarChartRodData(
-                                          toY: entry.value,
-                                          color: entry.key == currentMonth ? Colors.red : tealColor,
-                                          width: 20,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                      ],
-                                    );
-                                  }).toList(),
+                                  barGroups:
+                                      monthlyBudget.entries.map((entry) {
+                                        return BarChartGroupData(
+                                          x: entry.key,
+                                          barRods: [
+                                            BarChartRodData(
+                                              toY: entry.value,
+                                              color:
+                                                  entry.key == currentMonth
+                                                      ? Colors.red
+                                                      : tealColor,
+                                              width: 20,
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                          ],
+                                        );
+                                      }).toList(),
                                   titlesData: FlTitlesData(
                                     show: true,
                                     bottomTitles: AxisTitles(
@@ -267,7 +317,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                   ),
                                   borderData: FlBorderData(show: false),
                                   gridData: FlGridData(show: false),
-                                  maxY: (monthlyBudget.values.reduce((a, b) => a > b ? a : b) + 10).toDouble(),
+                                  maxY:
+                                      (monthlyBudget.values.reduce(
+                                                (a, b) => a > b ? a : b,
+                                              ) +
+                                              10)
+                                          .toDouble(),
                                 ),
                               ),
                             ),
@@ -288,37 +343,54 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   children: [
                     const Text(
                       'Ingrédients les plus utilisés',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     FutureBuilder<List<Map<String, dynamic>>>(
                       future: _dishesFuture,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         }
                         if (snapshot.hasError) {
-                          return const Text('Erreur lors du chargement des ingrédients');
+                          return const Text(
+                            'Erreur lors du chargement des ingrédients',
+                          );
                         }
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return const Text('Aucun ingrédient disponible');
                         }
                         final dishes = snapshot.data!;
-                        final ingredients = _getIngredientUsage(_selectedPeriod, dishes);
+                        final ingredients = _getIngredientUsage(
+                          _selectedPeriod,
+                          dishes,
+                        );
                         return SizedBox(
                           height: 200,
                           child: PieChart(
                             PieChartData(
-                              sections: ingredients.entries.map((entry) {
-                                final index = ingredients.keys.toList().indexOf(entry.key);
-                                return PieChartSectionData(
-                                  value: entry.value.toDouble(),
-                                  title: '${entry.key}\n${entry.value}',
-                                  color: _getColor(index),
-                                  radius: 80,
-                                  titleStyle: const TextStyle(fontSize: 12, color: Colors.white),
-                                );
-                              }).toList(),
+                              sections:
+                                  ingredients.entries.map((entry) {
+                                    final index = ingredients.keys
+                                        .toList()
+                                        .indexOf(entry.key);
+                                    return PieChartSectionData(
+                                      value: entry.value.toDouble(),
+                                      title: '${entry.key}\n${entry.value}',
+                                      color: _getColor(index),
+                                      radius: 80,
+                                      titleStyle: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                      ),
+                                    );
+                                  }).toList(),
                               sectionsSpace: 2,
                               centerSpaceRadius: 40,
                             ),
