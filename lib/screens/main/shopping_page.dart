@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:menu_maison/utils/theme.dart';
 import '../../backend/repositories/dish_repository_impl.dart';
+import 'dart:io';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ShoppingPage extends StatefulWidget {
   const ShoppingPage({super.key});
@@ -93,6 +97,127 @@ class _ShoppingPageState extends State<ShoppingPage> {
     });
   }
 
+  Future<void> _shareIngredientsAsPDF(BuildContext context) async {
+    print('Génération du PDF pour la liste d\'ingrédients');
+
+    final pdf = pw.Document();
+
+    // Calcul du coût total global
+    final totalCost = _ingredients.fold<double>(
+      0.0,
+      (sum, item) => sum + (item['totalCost'] as double),
+    );
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              'Liste de courses - Période : $_selectedPeriod',
+              style: pw.TextStyle(
+                fontSize: 24,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text(
+              'Ingrédients nécessaires :',
+              style: pw.TextStyle(
+                fontSize: 18,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.all(),
+              columnWidths: {
+                0: pw.FlexColumnWidth(3),
+                1: pw.FlexColumnWidth(2),
+                2: pw.FlexColumnWidth(2),
+              },
+              children: [
+                pw.TableRow(
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'Nom',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'Quantité',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'Coût total',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                ..._ingredients.map(
+                  (item) => pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(item['name']?.toString() ?? ''),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(item['quantity'].toString()),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text('${(item['totalCost'] as double).toStringAsFixed(2)} €'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text(
+              'Coût total général : ${totalCost.toStringAsFixed(2)} €',
+              style: pw.TextStyle(
+                fontSize: 18,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final directory = await getTemporaryDirectory();
+    final file = File(
+      '${directory.path}/liste_courses_${_selectedPeriod.replaceAll(' ', '_')}.pdf',
+    );
+    await file.writeAsBytes(await pdf.save());
+
+    final result = await Share.shareXFiles(
+      [XFile(file.path)],
+      text: 'Voici la liste de courses pour la période $_selectedPeriod en PDF.',
+      subject: 'Liste de courses - $_selectedPeriod',
+    );
+
+    if (result.status == ShareResultStatus.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Liste partagée avec succès')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors du partage de la liste')),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _newItemNameController.dispose();
@@ -108,13 +233,12 @@ class _ShoppingPageState extends State<ShoppingPage> {
         backgroundColor: tealColor,
         foregroundColor: whiteColor,
         leading: Builder(
-          builder:
-              (context) => IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -280,11 +404,7 @@ class _ShoppingPageState extends State<ShoppingPage> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Liste partagée (simulé)')),
-                  );
-                },
+                onPressed: () => _shareIngredientsAsPDF(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: tealColor,
                   foregroundColor: whiteColor,
