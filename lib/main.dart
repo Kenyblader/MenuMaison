@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
+import 'package:menu_maison/screens/main/map_page.dart';
+import 'package:menu_maison/screens/main/profile_page.dart';
+import 'package:menu_maison/screens/main/vocal_list.dart';
 import 'package:menu_maison/services/gemini_service.dart';
+import 'package:menu_maison/services/sync_service.dart';
 import 'package:menu_maison/utils/theme.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
@@ -19,27 +24,58 @@ import 'backend/repositories/family_profile_repository_impl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Geminservice.init();
-  final authRepository = AuthRepositoryImpl();
-  final familyProfileRepository = FamilyProfileRepositoryImpl();
-  await authRepository.init();
+  await runAppAfterDbInit();
+  await FMTCObjectBoxBackend().initialise();
+  await FMTCStore('mapStore').manage.create();
+}
+
+Future<void> runAppAfterDbInit() async {
   try {
-    await familyProfileRepository.isProfileConfigured();
-  } catch (e) {
-    print('Erreur lors de la vérification du profil : $e');
-    // Si la table n'existe pas, on suppose qu'elle doit être créée
-    // La prochaine initialisation de la base corrigera cela
+    Geminservice.init();
+    final authRepository = AuthRepositoryImpl();
+    final familyProfileRepository = FamilyProfileRepositoryImpl();
+
+    await authRepository.init(); // s'assure que la DB est bien prête
+    SyncService().initialize();
+
+    bool isProfileConfigured = false;
+    try {
+      isProfileConfigured = await familyProfileRepository.isProfileConfigured();
+    } catch (e) {
+      print('Erreur lors de la vérification du profil : $e');
+    }
+
+    UserModel? currentUser;
+    try {
+      currentUser = await authRepository.getCurrentUser();
+    } catch (e) {
+      print("Erreur lors de la récupération de l'utilisateur : $e");
+    }
+
+    runApp(
+      MenuMaisonApp(
+        currentUser: currentUser,
+        isProfileConfigured: isProfileConfigured,
+      ),
+    );
+  } catch (e, stack) {
+    print("Erreur critique lors de l'initialisation : $e");
+    print(stack);
+    runApp(const MaterialApp(home: ErrorScreen()));
   }
-  final currentUser = await authRepository.getCurrentUser();
-  final isProfileConfigured = await familyProfileRepository
-      .isProfileConfigured()
-      .catchError((_) => false);
-  runApp(
-    MenuMaisonApp(
-      currentUser: currentUser,
-      isProfileConfigured: isProfileConfigured,
-    ),
-  );
+}
+
+class ErrorScreen extends StatelessWidget {
+  const ErrorScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text('Erreur lors de l’initialisation de l’application.'),
+      ),
+    );
+  }
 }
 
 class MenuMaisonApp extends StatelessWidget {
@@ -74,6 +110,7 @@ class MenuMaisonApp extends StatelessWidget {
         '/shopping': (context) => const ShoppingPage(),
         '/suggestions': (context) => const SuggestionPage(),
         '/statistics': (context) => const StatisticsPage(),
+        '/vocalList': (context) => const Audiolistform(),
         '/dish-detail':
             (context) => DishDetailPage(
               dish:
@@ -87,18 +124,3 @@ class MenuMaisonApp extends StatelessWidget {
 
 // Page temporaire pour Profil
 // Page temporaire pour Profil
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil'),
-        backgroundColor: tealColor,
-        foregroundColor: whiteColor,
-      ),
-      body: const Center(child: Text('Page Profil (à implémenter)')),
-    );
-  }
-}

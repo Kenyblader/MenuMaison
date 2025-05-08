@@ -18,7 +18,7 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'menu_maison.db');
-
+    print("ouverture de la base de donne");
     return await openDatabase(
       path,
       version:
@@ -29,7 +29,7 @@ class DatabaseHelper {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            name TEXT
+            name TEXT,
             synced INTEGER DEFAULT 0,
             lastUpdated INTEGER
           )
@@ -49,7 +49,7 @@ class DatabaseHelper {
             children INTEGER NOT NULL,
             babies INTEGER NOT NULL,
             dietaryRestrictions TEXT,
-            region TEXT
+            region TEXT,
             synced INTEGER DEFAULT 0,
             lastUpdated INTEGER
           )
@@ -64,11 +64,23 @@ class DatabaseHelper {
             servings INTEGER NOT NULL,
             tutorialLink TEXT,
             ingredients TEXT, -- Liste d'ingrédients au format JSON : [{'name': String, 'price': double}]
-            photoPath TEXT
+            photoPath TEXT,
             synced INTEGER DEFAULT 0,
             lastUpdated INTEGER
           )
         ''');
+
+        await db.execute('''
+          CREATE TABLE meal_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    date DATE NOT NULL, -- Date du repas
+    meal_type TEXT NOT NULL, -- Type de repas (ex. "petit-déjeuner", "déjeuner", "dîner")
+    dish_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE
+    );
+      ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {

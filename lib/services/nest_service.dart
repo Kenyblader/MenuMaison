@@ -1,6 +1,7 @@
 // lib/services/api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:menu_maison/backend/entities/dish_entity.dart';
 import 'package:menu_maison/backend/entities/family_profile_entity.dart';
 import 'package:menu_maison/backend/entities/user_entity.dart';
 import 'package:menu_maison/backend/models/dish.dart';
@@ -72,7 +73,7 @@ class ApiService {
   }
 
   // Plats
-  Future<List<Dish>> getAllDishes() async {
+  Future<List<DishEntity>> getAllDishes() async {
     final response = await http.get(
       Uri.parse('$baseUrl/dishes'),
       headers: headers,
@@ -80,17 +81,17 @@ class ApiService {
 
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(response.body);
-      return body.map((item) => Dish.fromMap(item)).toList();
+      return body.map((item) => DishEntity.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load dishes');
     }
   }
 
-  Future<Dish> createDish(Dish dish) async {
+  Future<Dish> createDish(DishEntity dish) async {
     final response = await http.post(
       Uri.parse('$baseUrl/dishes'),
       headers: headers,
-      body: jsonEncode(dish.toMap()),
+      body: jsonEncode(dish.toJson()),
     );
 
     if (response.statusCode == 201) {
@@ -100,11 +101,11 @@ class ApiService {
     }
   }
 
-  Future<Dish> updateDish(Dish dish) async {
+  Future<Dish> updateDish(DishEntity dish) async {
     final response = await http.put(
       Uri.parse('$baseUrl/dishes/${dish.id}'),
       headers: headers,
-      body: jsonEncode(dish.toMap()),
+      body: jsonEncode(dish.toJson()),
     );
 
     if (response.statusCode == 200) {
@@ -128,6 +129,20 @@ class ApiService {
       return FamilyProfileEntity.fromMap(jsonDecode(response.body));
     } else {
       throw Exception('Failed to create family profile');
+    }
+  }
+
+  updateFamilyProfile(FamilyProfileEntity profile) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/family-profiles/${profile.id}'),
+      headers: headers,
+      body: jsonEncode(profile.toJson()),
+    );
+
+    if (response.statusCode == 201) {
+      return FamilyProfileEntity.fromMap(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to update family profile');
     }
   }
 

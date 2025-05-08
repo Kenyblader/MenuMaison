@@ -1,10 +1,15 @@
 // lib/services/sync_service.dart
-import 'package:menu_maison/backend/database/database_helper.dart';
+import 'package:menu_maison/backend/repositories/auth_repository_impl.dart';
+import 'package:menu_maison/backend/repositories/dish_repository_impl.dart';
+import 'package:menu_maison/backend/repositories/family_profile_repository_impl.dart';
 import 'package:menu_maison/services/nest_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 
 class SyncService {
-  final DatabaseHelper dbHelper = DatabaseHelper();
+  final authRepository = AuthRepositoryImpl();
+  final dishRepository = DishRepositoryImpl();
+  final familyProfileRepository = FamilyProfileRepositoryImpl();
   final ApiService apiService = ApiService();
   final Connectivity _connectivity = Connectivity();
   StreamSubscription? _connectivitySubscription;
@@ -55,7 +60,7 @@ class SyncService {
   // Synchroniser les utilisateurs
   Future<void> _syncUsers() async {
     // 1. Récupérer les utilisateurs locaux à synchroniser
-    final localUsers = await dbHelper.getUnsyncedUsers();
+    final localUsers = await authRepository.getUnsyncedUsers();
 
     // 2. Pour chaque utilisateur local
     for (var user in localUsers) {
@@ -65,14 +70,14 @@ class SyncService {
           // Nouvel utilisateur
           final serverUser = await apiService.createUser(user);
           // Mettre à jour l'ID local avec l'ID du serveur
-          await dbHelper.updateUserWithServerId(user.localId!, serverUser.id!);
+          await authRepository.updateUserWithServerId(user.id!, serverUser.id!);
         } else {
           // Mise à jour d'un utilisateur existant
           await apiService.updateUser(user);
         }
 
         // 4. Marquer comme synchronisé
-        await dbHelper.markUserSynced(user.localId!);
+        await authRepository.markUserSynced(user.id!);
       } catch (e) {
         print('Erreur synchronisation utilisateur: $e');
       }
@@ -85,7 +90,7 @@ class SyncService {
   // Synchroniser les plats
   Future<void> _syncDishes() async {
     // 1. Récupérer les plats locaux à synchroniser
-    final localDishes = await dbHelper.getUnsyncedDishes();
+    final localDishes = await dishRepository.getUnsyncedDishes();
 
     // 2. Pour chaque plat local
     for (var dish in localDishes) {
@@ -94,14 +99,14 @@ class SyncService {
         if (dish.id == null) {
           // Nouveau plat
           final serverDish = await apiService.createDish(dish);
-          await dbHelper.updateDishWithServerId(dish.localId!, serverDish.id!);
+          await dishRepository.updateDishWithServerId(dish.id!, serverDish.id!);
         } else {
           // Mise à jour d'un plat existant
           await apiService.updateDish(dish);
         }
 
         // 4. Marquer comme synchronisé
-        await dbHelper.markDishSynced(dish.localId!);
+        await dishRepository.markDishSynced(dish.id!);
       } catch (e) {
         print('Erreur synchronisation plat: $e');
       }
@@ -110,12 +115,14 @@ class SyncService {
     // 5. Récupérer les nouveaux plats du serveur
     try {
       final serverDishes = await apiService.getAllDishes();
-      final localDishIds = await dbHelper.getAllDishIds();
+      final localDishIds = await dishRepository.getAllDishIds();
 
       // Ajouter les plats qui n'existent pas localement
       for (var dish in serverDishes) {
         if (!localDishIds.contains(dish.id)) {
-          await dbHelper.insertDish(dish, synced: true);
+          final tmp = dish.toMap();
+          dish.synced = 1;
+          await dishRepository.saveDish(tmp);
         }
       }
     } catch (e) {
@@ -126,14 +133,15 @@ class SyncService {
   // Synchroniser les profils de famille
   Future<void> _syncFamilyProfiles() async {
     // Implémentation similaire aux autres méthodes
-    final localProfiles = await dbHelper.getUnsyncedFamilyProfiles();
+    final localProfiles =
+        await familyProfileRepository.getUnsyncedFamilyProfiles();
 
     for (var profile in localProfiles) {
       try {
         if (profile.id == null) {
           final serverProfile = await apiService.createFamilyProfile(profile);
-          await dbHelper.updateFamilyProfileWithServerId(
-            profile.localId!,
+          await familyProfileRepository.updateFamilyProfileWithServerId(
+            profile.id!,
             serverProfile.id!,
           );
         } else {
@@ -141,7 +149,7 @@ class SyncService {
           await apiService.updateFamilyProfile(profile);
         }
 
-        await dbHelper.markFamilyProfileSynced(profile.localId!);
+        await familyProfileRepository.markFamilyProfileSynced(profile.id!);
       } catch (e) {
         print('Erreur synchronisation profil famille: $e');
       }

@@ -28,7 +28,9 @@ class _ShoppingPageState extends State<ShoppingPage> {
 
     // Regrouper les ingrédients par nom
     for (var dish in dishes) {
-      final ingredients = List<Map<String, dynamic>>.from(dish['ingredients'] ?? []);
+      final ingredients = List<Map<String, dynamic>>.from(
+        dish['ingredients'] ?? [],
+      );
       for (var ingredient in ingredients) {
         final name = ingredient['name'];
         if (!groupedIngredients.containsKey(name)) {
@@ -62,7 +64,8 @@ class _ShoppingPageState extends State<ShoppingPage> {
   }
 
   void _addNewItem() {
-    if (_newItemNameController.text.isEmpty || _newItemPriceController.text.isEmpty) {
+    if (_newItemNameController.text.isEmpty ||
+        _newItemPriceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez remplir tous les champs')),
       );
@@ -83,11 +86,7 @@ class _ShoppingPageState extends State<ShoppingPage> {
         existingIngredient['totalCost'] += price;
       } else {
         // Sinon, ajouter un nouvel ingrédient
-        _ingredients.add({
-          'name': name,
-          'quantity': 1,
-          'totalCost': price,
-        });
+        _ingredients.add({'name': name, 'quantity': 1, 'totalCost': price});
       }
       _newItemNameController.clear();
       _newItemPriceController.clear();
@@ -109,12 +108,13 @@ class _ShoppingPageState extends State<ShoppingPage> {
         backgroundColor: tealColor,
         foregroundColor: whiteColor,
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-          ),
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              ),
         ),
       ),
       body: SingleChildScrollView(
@@ -131,7 +131,10 @@ class _ShoppingPageState extends State<ShoppingPage> {
                     children: [
                       const Text(
                         'Période de planification',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
@@ -142,9 +145,18 @@ class _ShoppingPageState extends State<ShoppingPage> {
                           ),
                         ),
                         items: const [
-                          DropdownMenuItem(value: 'Quotidienne', child: Text('Quotidienne')),
-                          DropdownMenuItem(value: 'Hebdomadaire', child: Text('Hebdomadaire')),
-                          DropdownMenuItem(value: 'Mensuelle', child: Text('Mensuelle')),
+                          DropdownMenuItem(
+                            value: 'Quotidienne',
+                            child: Text('Quotidienne'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Hebdomadaire',
+                            child: Text('Hebdomadaire'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Mensuelle',
+                            child: Text('Mensuelle'),
+                          ),
                         ],
                         onChanged: (value) {
                           setState(() {
@@ -176,7 +188,9 @@ class _ShoppingPageState extends State<ShoppingPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Quantité: ${ingredient['quantity']}'),
-                          Text('Coût total: ${ingredient['totalCost'].toStringAsFixed(2)} €'),
+                          Text(
+                            'Coût total: ${ingredient['totalCost'].toStringAsFixed(2)} €',
+                          ),
                         ],
                       ),
                       trailing: IconButton(
@@ -200,7 +214,10 @@ class _ShoppingPageState extends State<ShoppingPage> {
                     children: [
                       const Text(
                         'Ajouter un élément',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       TextField(
@@ -245,6 +262,25 @@ class _ShoppingPageState extends State<ShoppingPage> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
+                  Navigator.pushNamed(context, '/vocalList');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: tealColor,
+                  foregroundColor: whiteColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: const Text(
+                  'enregistrer votre vocal',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Liste partagée (simulé)')),
                   );
@@ -258,7 +294,10 @@ class _ShoppingPageState extends State<ShoppingPage> {
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   minimumSize: const Size(double.infinity, 50),
                 ),
-                child: const Text('Partager la liste', style: TextStyle(fontSize: 16)),
+                child: const Text(
+                  'Partager la liste',
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             ],
           ),

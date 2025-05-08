@@ -36,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final user = await _authRepository.login(email, password);
-      if (user != null) {
+      if (user) {
         // Vérifier si le profil familial est configuré
         final isProfileConfigured =
             await _familyProfileRepository.isProfileConfigured();

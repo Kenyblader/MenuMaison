@@ -39,6 +39,20 @@ class DishRepositoryImpl implements DishRepository {
     }).toList();
   }
 
+  Future<Map<String, dynamic>> getDisheById(int id) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'dishes',
+      where: 'id=?',
+      whereArgs: [id],
+    );
+
+    final dish = Map<String, dynamic>.from(maps.first);
+    // Désérialiser les ingrédients depuis JSON
+    dish['ingredients'] = jsonDecode(maps.first['ingredients'] ?? '[]');
+    return dish;
+  }
+
   @override
   Future<void> deleteDish(int id) async {
     final db = await _dbHelper.database;

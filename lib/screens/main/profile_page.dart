@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:menu_maison/screens/main/map_page.dart';
+import 'package:menu_maison/utils/location.dart';
 import 'package:menu_maison/utils/theme.dart';
 import 'home_page.dart';
 import '../../backend/models/family_profile_model.dart';
 import '../../backend/repositories/family_profile_repository_impl.dart';
 
-class FamilyProfileSetupPage extends StatefulWidget {
-  const FamilyProfileSetupPage({super.key});
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
 
   @override
-  State<FamilyProfileSetupPage> createState() => _FamilyProfileSetupPageState();
+  State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _FamilyProfileSetupPageState extends State<FamilyProfileSetupPage> {
+class _ProfilePageState extends State<ProfilePage> {
   final _totalMembersController = TextEditingController();
   final _adultsController = TextEditingController();
   final _childrenController = TextEditingController();
@@ -20,6 +21,7 @@ class _FamilyProfileSetupPageState extends State<FamilyProfileSetupPage> {
   final _dietaryRestrictionsController = TextEditingController();
   String? _region;
   final _familyProfileRepository = FamilyProfileRepositoryImpl();
+  late FamilyProfileModel existingProfile;
 
   @override
   void dispose() {
@@ -29,6 +31,25 @@ class _FamilyProfileSetupPageState extends State<FamilyProfileSetupPage> {
     _babiesController.dispose();
     _dietaryRestrictionsController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _loadProfile();
+  }
+
+  _loadProfile() async {
+    final prof = await _familyProfileRepository.getProfile();
+    existingProfile = prof as FamilyProfileModel;
+    _totalMembersController.text = existingProfile.totalMembers.toString();
+    _adultsController.text = existingProfile.adults.toString();
+    _babiesController.text = existingProfile.babies.toString();
+    _childrenController.text = existingProfile.children.toString();
+    _dietaryRestrictionsController.text =
+        existingProfile.dietaryRestrictions ?? '';
+    _region = existingProfile.region;
   }
 
   @override
@@ -218,6 +239,7 @@ class _FamilyProfileSetupPageState extends State<FamilyProfileSetupPage> {
                 }
 
                 final profile = FamilyProfileModel(
+                  id: existingProfile.id,
                   totalMembers: totalMembers,
                   adults: adults,
                   children: children,
@@ -228,11 +250,18 @@ class _FamilyProfileSetupPageState extends State<FamilyProfileSetupPage> {
                           : null,
                   region: _region,
                 );
-                await _familyProfileRepository.saveProfile(profile);
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HomePage()),
-                );
+                try {
+                  await _familyProfileRepository.updateProfile(profile);
+                  await _loadProfile();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("mise a jour reussit")),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("erreur lors de la mise a jour")),
+                  );
+                  print("erreur updare profil: $e");
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: tealColor,
@@ -253,9 +282,9 @@ class _FamilyProfileSetupPageState extends State<FamilyProfileSetupPage> {
     );
   }
 
-  _updateRegion(String p) {
+  _updateRegion(String position) {
     setState(() {
-      _region = p;
+      _region = position;
     });
   }
 }

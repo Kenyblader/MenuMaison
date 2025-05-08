@@ -11,11 +11,11 @@ class FamilyProfileRepositoryImpl implements FamilyProfileRepository {
   FamilyProfileRepositoryImpl._internal();
 
   static const String _tableFamilyProfiles = 'family_profiles';
-  get _db async => await DatabaseHelper().database;
+  Future<Database> get _db async => await DatabaseHelper().database;
 
   @override
   Future<bool> isProfileConfigured() async {
-    final db = await DatabaseHelper().database;
+    final db = await _db;
     final List<Map<String, dynamic>> profiles = await db.query(
       _tableFamilyProfiles,
     );
@@ -24,7 +24,7 @@ class FamilyProfileRepositoryImpl implements FamilyProfileRepository {
 
   @override
   Future<void> saveProfile(FamilyProfileModel profile) async {
-    final db = await DatabaseHelper().database;
+    final db = await _db;
     await db.insert(
       _tableFamilyProfiles,
       FamilyProfileEntity(
@@ -35,6 +35,25 @@ class FamilyProfileRepositoryImpl implements FamilyProfileRepository {
         dietaryRestrictions: profile.dietaryRestrictions,
         region: profile.region,
       ).toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateProfile(FamilyProfileModel profile) async {
+    final db = await _db;
+    await db.update(
+      _tableFamilyProfiles,
+      FamilyProfileEntity(
+        id: profile.id,
+        totalMembers: profile.totalMembers,
+        adults: profile.adults,
+        children: profile.children,
+        babies: profile.babies,
+        dietaryRestrictions: profile.dietaryRestrictions,
+        region: profile.region,
+      ).toMap(),
+      where: 'id= ?',
+      whereArgs: [profile.id],
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
