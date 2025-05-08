@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:menu_maison/components/gemini_progress_animation.dart';
+import 'package:menu_maison/screens/main/suggestion_detail_page.dart';
 import 'package:menu_maison/services/gemini_service.dart';
 import 'package:menu_maison/utils/theme.dart';
 
@@ -211,6 +212,7 @@ class _SuggestionPageState extends State<SuggestionPage> {
                               dish.name,
                               '${dish.total} CFA',
                               _preference ?? 'Aucune',
+                              dish,
                             );
                           },
                         ),
@@ -220,11 +222,16 @@ class _SuggestionPageState extends State<SuggestionPage> {
             ),
           ],
         ),
-      ), 
+      ),
     );
   }
 
-  Widget _buildSuggestionCard(String title, String cost, String preference) {
+  Widget _buildSuggestionCard(
+    String title,
+    String cost,
+    String preference,
+    DishModel dish,
+  ) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 5.0),
       child: ListTile(
@@ -240,8 +247,11 @@ class _SuggestionPageState extends State<SuggestionPage> {
           icon: const Icon(Icons.add, color: tealColor),
           onPressed: () {
             // Ajoute le menu au planning (à implémenter)
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$title ajouté au planning')),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (builder) => ItemListScreen(list: dish),
+              ),
             );
           },
         ),
