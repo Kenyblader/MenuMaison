@@ -18,6 +18,7 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'menu_maison.db');
+    
     print("ouverture de la base de donne");
     return await openDatabase(
       path,
